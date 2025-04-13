@@ -56,7 +56,7 @@ function Remove-SteamWhatsNew
         # Get target CSS for update
         cd "$SteamLocation\steamui\css"
         $css = Get-Content ".\$TargetFile"
-        $allCss = $css -join '\n'
+        $allCss = $css -join ''
 
         # Write joined, unmodified content to a backup file; Can recover by deletingt the target file and renaming this backup without the "~backup"
         Set-Content ".\$TargetFile~backup" $allCss
