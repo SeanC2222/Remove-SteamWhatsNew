@@ -5,7 +5,7 @@ Pre-Requirements)
 
 Steps)
 1) Open PowerShell
-2) Run `Import-Module .\RemoveWhatsNew.ps1`
+2) Run `Import-Module .\RemoveSteamWhatsNew.ps1`
 3) Run `Remove-SteamWhatsNew`<br>
 Optional Parameters:<br>
     `-SetNoVerifyInStartup $false`,<br> 
