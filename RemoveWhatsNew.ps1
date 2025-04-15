@@ -46,44 +46,65 @@ function Remove-SteamWhatsNew
                 $shell = New-Object -COM WScript.Shell
 
                 $noverifyShortcut = $shell.CreateShortCut($fileLocation)
-                $noverifyShortcut.TargetPath = if ($noverifyShortcut.TargetPath -ne $null) { $noverifyShortcut.TargetPath } else { "$SteamLocation\steam.exe" }
+
+                $steam = Get-ChildItem "$($noverifyShortcut.WorkingDirectory)\steam.exe" 2> $null
+
+                if ($null -eq $steam)
+                {
+                    Write-Host "Didn't find steam at shortcut location. Updating shortcut to point at $SteamLocation. If this isn't correct. Re-run with input argument ``-SteamLocation {Steam's Directory path}``"
+                    $noverifyShortcut.WorkingDirectory = $SteamLocation
+                    $noverifyShortcut.TargetPath = "$SteamLocation\steam.exe"
+                }
+
                 $noverifyShortcut.Arguments = "-dev -noverifyfiles" # Ensure arguments are on the startup shortcut
-                $noverifyShortcut.Description = "$($noverifyShortcut.Description) - Modified to not verify files on every Steam boot."
+
+                $descriptionModifier = "- Modified to not verify files on every Steam boot."
+                $noverifyShortcut.Description = if ($noverifyShortcut.Description.EndsWith($descriptionModifier)) { $noverifyShortcut.Description } else { "$($noverifyShortcut.Description) $descriptionModifier"}
+
                 $noverifyShortcut.Save()
             }
         }
 
-        # Get target CSS for update
-        cd "$SteamLocation\steamui\css"
-        $css = Get-Content ".\$TargetFile"
-        $allCss = $css -join ''
+        $workingDirectory = Get-Location
 
-        # Write joined, unmodified content to a backup file; Can recover by deletingt the target file and renaming this backup without the "~backup"
-        Set-Content ".\$TargetFile~backup" $allCss
-
-        Write-Host "Completed backup write."
-
-        # Split on the target, and insert the modified CSS
-        $target = "$TargetClass{"
-        $splitCss = $allCss -split $target
-        $modified_css = "display:none;"
-        for($i = 1; $i -lt $splitCss.Length; $i++)
+        try
         {
-            $splitCss[$i] = if ($splitCss[$i].StartsWith($modified_css)) { $splitCss[$i] } else { $splitCss[$i].Insert(0, $modified_css) }
+            # Get target CSS for update
+            cd "$SteamLocation\steamui\css"
+            $css = Get-Content ".\$TargetFile"
+            $allCss = $css -join ''
+
+            # Write joined, unmodified content to a backup file; Can recover by deletingt the target file and renaming this backup without the "~backup"
+            Set-Content ".\$TargetFile~backup" $allCss
+
+            Write-Host "Completed backup write."
+
+            # Split on the target, and insert the modified CSS
+            $target = "$TargetClass{"
+            $splitCss = $allCss -split $target
+            $modified_css = "display:none;"
+            for($i = 1; $i -lt $splitCss.Length; $i++)
+            {
+                $splitCss[$i] = if ($splitCss[$i].StartsWith($modified_css)) { $splitCss[$i] } else { $splitCss[$i].Insert(0, $modified_css) }
+            }
+
+            # Rebuild all CSS with modified CSS content, then set to original file target
+            $allCss = $splitCss -join $target
+            Set-Content ".\$TargetFile" $allCss
+
+            Write-Host "Completed modified CSS file write."
+
+            if($SetNoVerifyInStartup)
+            {
+                SetNoVerifyInStartupShortcut
+                Write-Host "Completed Startup modification with noverifyfiles."
+            }
+
+            Write-Host "Completed."
         }
-
-        # Rebuild all CSS with modified CSS content, then set to original file target
-        $allCss = $splitCss -join $target
-        Set-Content ".\$TargetFile" $allCss
-
-        Write-Host "Completed modified CSS file write."
-
-        if($SetNoVerifyInStartup)
+        finally
         {
-            SetNoVerifyInStartupShortcut
-            Write-Host "Completed Startup modification with noverifyfiles."
+            cd $workingDirectory
         }
-
-        Write-Host "Completed."
     }
 }
