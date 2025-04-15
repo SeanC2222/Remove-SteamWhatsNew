@@ -6,7 +6,8 @@ Pre-Requirements)
 Steps)
 1) Open PowerShell
 2) Run `Import-Module .\RemoveWhatsNew.ps1`
-3) Run `Remove-SteamWhatsNew` Optional Parameters:<br>
+3) Run `Remove-SteamWhatsNew`<br>
+Optional Parameters:<br>
     `-SetNoVerifyInStartup $false`,<br> 
     `-SteamLocation {Path to Steam directory}`,<br>
     `-TargetClass {Steam CSS class to target}`,<br>
