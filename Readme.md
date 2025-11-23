@@ -1,7 +1,7 @@
 # Getting started:
 
 ## WARNING:
-In general you should not run scripts you don't understand from strangers on the internet. Especially when they involve steps like "grant permissions" before running.
+**You should not run scripts you don't understand from strangers on the internet**. Especially when they involve steps like "grant permissions" before running.
 Claims I make you should verify prior to using this, _or any_ tool for that matter, and don't trust software on your system.
 
 ## Background
