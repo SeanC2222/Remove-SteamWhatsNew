@@ -1,67 +1,62 @@
-[CmdletBinding()]
-param(
-    [Parameter()]
-    [bool] $SetNoVerifyInStartup = $true,
+#Requires -RunAsAdministrator
 
+# --- Configuration ---
+$CertFileName = "SeanC2222_Root_ca.cer"
+$CertStoreLocation = "Cert:\CurrentUser\Root"
+# ---------------------
 
-    [Parameter()]
-    [string] $ModuleLocation = "$($env:USERPROFILE)\source\repos\Remove-SteamWhatsNew",
+Write-Host "Starting certificate installation script for $($CertFileName)..." -ForegroundColor Cyan
 
-    [Parameter()]
-    [string] $ModuleName = "RemoveSteamWhatsNew",
-
-    [Parameter()]
-    [string] $SteamLocation = "C:\Program Files (x86)\Steam"
-)
-try
-{
-    Write-Host "Checking if Steam is running..."
-    $process = Get-Process "steam" 2> $null
-    
-    if ($null -ne $process)
-    {
-        Write-Host "Steam is running. Shutting down Steam."
-        $process = Start-Process "$SteamLocation\steam.exe" -ArgumentList "-shutdown" -WorkingDirectory $SteamLocation -PassThru
-        Wait-Process -Id $process.Id
-
-        $process = Get-Process "steam" 2> $null
-        if ($null -ne $process)
-        {
-            Wait-Process -Id $process.Id
-        }
-    }
-    Write-Host "Steam is shutdown."
-
-    if ($null -eq (Get-Module "$ModuleName"))
-    {
-        Import-Module "$ModuleLocation\$ModuleName.ps1"
-    }
-
-    if (Get-Module $ModuleName)
-    {
-        Remove-SteamWhatsNew -SetNoVerifyInStartup $true -SteamLocation "$SteamLocation"
-    }
-    else 
-    {
-        throw [System.Exception]::new("Remove-SteamWhatsNew can't be found.")
-    }
-    
-    Write-Host "What's new successfully removed."
-}
-finally 
-{
-    Write-Host "Starting Steam..."
-    Start-Process "$SteamLocation\steam.exe" -ArgumentList "-dev", "-noverifyfiles" -WorkingDirectory $SteamLocation
+# 1. Check for Administrator Privileges
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Error "This script must be run with Administrator privileges to install a trusted root certificate."
+    Write-Error "Right-click the script file and select 'Run as Administrator'."
+    exit 1
 }
 
+# 2. Check if the certificate file exists
+$CertPath = Join-Path -Path $PSScriptRoot -ChildPath $CertFileName
 
+if (-not (Test-Path $CertPath)) {
+    Write-Error "Certificate file not found: $CertPath"
+    Write-Error "Please ensure '$CertFileName' is in the same folder as this script."
+    exit 1
+}
 
+# 3. Prompt user for confirmation (Important step to prevent 'dumb' installs)
+Write-Host "`n-----------------------------------------------------"
+Write-Host "WARNING: You are about to install a new trusted root certificate." -ForegroundColor Yellow
+Write-Host "This makes Windows trust software signed by this specific certificate." -ForegroundColor Yellow
+Write-Host "-----------------------------------------------------`n"
+
+$confirmation = Read-Host "Do you want to continue with the installation? (Y/N)"
+
+if ($confirmation.ToLower() -ne 'y') {
+    Write-Host "Installation cancelled by user."
+    exit 0
+}
+
+# 4. Import the certificate using the 'Import-Certificate' cmdlet
+Write-Host "Importing certificate '$CertPath' into $CertStoreLocation..."
+
+try {
+    Import-Certificate -FilePath $CertPath -CertStoreLocation $CertStoreLocation
+    Write-Host "`nSUCCESS: The certificate has been successfully installed into the Trusted Root Certification Authorities store." -ForegroundColor Green
+    Write-Host "You can now run the signed PowerShell scripts without execution policy errors." -ForegroundColor Green
+}
+catch {
+    Write-Error "`nERROR: Failed to install the certificate."
+    Write-Error "Details: $_"
+    exit 1
+}
+
+Write-Host "`nInstallation script finished."
 
 # SIG # Begin signature block
 # MIIb5AYJKoZIhvcNAQcCoIIb1TCCG9ECAQExDzANBglghkgBZQMEAgEFADB5Bgor
 # BgEEAYI3AgEEoGswaTA0BgorBgEEAYI3AgEeMCYCAwEAAAQQH8w7YFlLCE63JNLG
-# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCqDSeMK4N4w9Vx
-# BwGUUZHbMonUL7K0r8Mh5MIAKgZq5KCCFjYwggL4MIIB4KADAgECAhBw/Gtc8SzY
+# KX7zUQIBAAIBAAIBAAIBAAIBADAxMA0GCWCGSAFlAwQCAQUABCCdqziP1mdnS7ve
+# Or7/UyofGikjSla84xrb8TqLjHp5cKCCFjYwggL4MIIB4KADAgECAhBw/Gtc8SzY
 # g0R+JT16LzepMA0GCSqGSIb3DQEBCwUAMBQxEjAQBgNVBAMMCVNlYW5DMjIyMjAe
 # Fw0yNTExMjMwNDM4MjVaFw0yNjExMjMwNDU4MjVaMBQxEjAQBgNVBAMMCVNlYW5D
 # MjIyMjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANbZ6k5nKYmKA53f
@@ -183,28 +178,28 @@ finally
 # MYIFBDCCBQACAQEwKDAUMRIwEAYDVQQDDAlTZWFuQzIyMjICEHD8a1zxLNiDRH4l
 # PXovN6kwDQYJYIZIAWUDBAIBBQCggYQwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKA
 # ADAZBgkqhkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYK
-# KwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQgaL9zIE7+46L7KasdH1APqlxjrddC
-# pJIplvSL4A5Aa/0wDQYJKoZIhvcNAQEBBQAEggEAG5c5d1SFtondrvhwNPqZGP30
-# aMBnyMI/5CJdapBlNQMxWAlji0cDsy5AX03t7HDzJa1nsgPeF+EFMcJFyukot1x1
-# vJI9G72JvBt6CPKNkWghr5DGRKqz1cLCFRleWvM2R21zvJcuxbTGRtrnUnrHEE4h
-# 9y14hDGs96VoPKBnGvnDWqfJAOkx63MVsJgZblyzYaDdbrNaF9gkJtrhtJvLfgEQ
-# f2dGKXwLi4uSOp5s3okE/2B5BpVgrBNo1i55SDzcpH4eca1hsCNec1OH2RxFfgYT
-# q3DY2EoWaMStxcYLelHDCeZ7wno87xg1Au5xBH1uyOqA6vZuBKzUCedwwQ4z+aGC
+# KwYBBAGCNwIBFTAvBgkqhkiG9w0BCQQxIgQgItfMNjUfQFod+Sna3HHARfq+Ytfg
+# p75RrhpK6GAqCh8wDQYJKoZIhvcNAQEBBQAEggEAZl5bKNc9d7zpjASxEzPMaa0I
+# zlekeg4+pzJZrTxQQz7BOCaWKHMVOomJiQdFRZN51x4I1Ngw+CMjeR7K/m5YV3LB
+# x6G44BvbiWDTD4QjAokU3+155hBt4hDqeDYVFn06nI05CnBFijYUqDMxc5RM91rX
+# M16CF+ee32NrV3XyIglzxLlO81B8B9/GclFtn2VgLEvVXYUgJ+KJoB2HpnXaI0qw
+# 4Ryv4rm+O0ycgKzhY+3FYNqDfZlHKZYl1X1qXsBcI0Z/IWpM/nteTfcADxvrHqW0
+# VWsVW2FtUfpo0mqQdTXlELDV6Dts0PJcMOFQYEi8FTY549OYn4hjt/OQY0kVuqGC
 # AyYwggMiBgkqhkiG9w0BCQYxggMTMIIDDwIBATB9MGkxCzAJBgNVBAYTAlVTMRcw
 # FQYDVQQKEw5EaWdpQ2VydCwgSW5jLjFBMD8GA1UEAxM4RGlnaUNlcnQgVHJ1c3Rl
 # ZCBHNCBUaW1lU3RhbXBpbmcgUlNBNDA5NiBTSEEyNTYgMjAyNSBDQTECEAqA7xhL
 # jfEFgtHEdqeVdGgwDQYJYIZIAWUDBAIBBQCgaTAYBgkqhkiG9w0BCQMxCwYJKoZI
-# hvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNTExMjMwNDUzMDRaMC8GCSqGSIb3DQEJ
-# BDEiBCAMXM3D/99fwMd/10iokwigb74eUmPDY5ar24ETZDJZHTANBgkqhkiG9w0B
-# AQEFAASCAgADWchM34dEm8SB4AzFv0AXEtQn7GMCU2ZK/7qOJA0gifuOSnUA8hyh
-# sNqOFrwV60InJMS7lzghLdjx6FCcTiepDeomGL56/YOdvoLZCx9U/9B4cw2HIEcC
-# VpgAoA2p9f0v8gLbswgBabrd4cXa0aj0cEqRuQp7ZGwF8ok+hZUVZLY8T6xhayeM
-# xq2bClWIXNEOm5aH6LVD8xmbW+RltV07TMW/M+oaY2D7w33ASM70Ix4m/HqyNn1i
-# YBcyebMFjY+YmxisGbtQRpSwU7bwWj+UQSdJbrZ/ElCq84B0+ibfPCj2A4C82cJP
-# yvCbCpDxLKvh6AVH6RGUl3zl3wJssAzmM77M+zoOl9xYf10XQB9+P6YYkL3AkfWn
-# NEOVDgC/sBUOjoWR4LR8B9wP6T6UiuBWM9obAarZe6+7hTnMY69pBUYPxgR7360K
-# /UrLPI//ji4vjV7ObwpoZ34PM4A17oj7BjgV6PfQoUFjEGzVnvIsxsc1lwwqHLVX
-# MAiwj0HdevAKFtgjt66bfjXTCXAfxEidqIwTkWBoVZHPFeLjHYwsCg6nkeRTN+Jj
-# K2NrgEfIHsur4al7uJNsEKlkebxiU4u9JxUC9a9w6xTylKEFcWzFj4uP5dlG8Yey
-# bOSjeGxJccFhLhYWGVA8DGQpIHKWZ4CH2uqImPQpQ0NaiQ9a0EkDGg==
+# hvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0yNTExMjMwNTE4MzVaMC8GCSqGSIb3DQEJ
+# BDEiBCBPWNHKf17UzQ2R49y2HpY1QQAXs6WCIMWCLmpYB+R+0zANBgkqhkiG9w0B
+# AQEFAASCAgAeIL3zGesFR3pVMslt3g71q2NZraHsWn4E1ni2XzIfxTL7LEv8JYSm
+# hJkwgMozaaBLHSv+UO+vb5fKDvsd28vuAIxG2EYVgd/jHa5qMLcAV2e8RnAayGo1
+# /ughox/JmW0F6H+t2Dr2SH2gmOybPfWFb1Q3j5DCKYSiX0VR4Xo+8rhhR4cfHqzr
+# tFaF4CF4bEPplrU4ScHU//HTr2qKBoXLp2vVvmi5JpPGqPDtcnMztSsouSb2nTfw
+# qmanqx70nJ5lM2Q74npaJgvro88qabdoYcHjR/2JTq/YT+PE5jvNJiGoIXevpnoD
+# 6DsGvHOGbFBqj161BRY62YRmCieqO3TNA8xaDdz0jya356e1/7seg9P5y72Z/wsi
+# sEIbT3ajSec3bPsrbcFg996yqGaqNXtj5ncyNuRYu8HzFz6OCE3Cjr8EYyvY5KRG
+# uZORpfRsVP4ZRhzShwZ4hJP3UoSQQKk3CHXt1c25hc4ZYhfgokXn3iqcjY+q7GDn
+# OYBACZtu/Rr6JkbwWnjDlqAlfXjmdWZh0hrNJ3dNId3YJO/YsYzTxGXxRyczar+4
+# JYxrqwAQMBdWfpatMXJhCtcwZQHS0xVgfl/ASxOQUnwLWfTVixnesvy8J/KauTUN
+# /THaoMMnNuMva5TYBT7zMDLIU3virXZeW8VOCjngLC63eUHMnH5wIg==
 # SIG # End signature block
