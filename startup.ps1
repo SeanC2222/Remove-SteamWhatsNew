@@ -5,7 +5,7 @@ param(
 
 
     [Parameter()]
-    [string] $ModuleLocation = "$(pwd.Path)\Remove-SteamWhatsNew",
+    [string] $ModuleLocation = "$($pwd.Path)",
 
     [Parameter()]
     [string] $ModuleName = "RemoveSteamWhatsNew",
