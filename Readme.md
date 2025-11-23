@@ -2,7 +2,7 @@
 
 ## WARNING:
 **You should not run scripts you don't understand from strangers on the internet**. Especially when they involve steps like "grant permissions" before running.
-Claims I make you should verify prior to using this, _or any_ tool for that matter, and don't trust software on your system.
+Claims I make you should verify prior to using this, _or any_ tool for that matter, and don't trust random software from the internet on your system.
 
 ## Background
 This is a PowerShell solution to trimming out the What's New banner on the Library page that can't be disabled natively in steam. I hate it. You hate it. And it's tiring to make individual items hide. Sorry Steam, you missed on this one.
