@@ -7,15 +7,45 @@ Claims I make you should verify prior to using this, _or any_ tool for that matt
 ## Background
 This is a PowerShell solution to trimming out the What's New banner on the Library page that can't be disabled natively in steam. I hate it. You hate it. And it's tiring to make individual items hide. Sorry Steam, you missed on this one.
 
-This solution includs a script that leverages the fact that the UI is an HTML page under the hood that leverages CSS to style the components. By setting a `display: none` property on the appropriate class, you tell the rendering engine to not actually bother rendering that component. Additionally, Steam validates the integrity of its resources prior to booting, so unless you tell it specifically _not_ to, changes made to the CSS will get reversed (Steam performs an "update" to restore the CSS file integrity). So a change needs to be made at the startup of Steam. This solution attempts to modify the shortcut that gets used in common Windows Startup locations, by adding a "-noverifyfiles" argument to the invocation of the exe that tells Steam to _not_ perform this validation and update to preserve your changes. This additionally adds the "-dev" argument which is limited in impact unless you know how to leverage the dev features.
+This solution includes a script that modifies the CSS that styles the Library. By setting a `display: none` property on the appropriate class, you tell the rendering engine to render the component. Additionally, Steam validates the integrity of its resources prior to booting, so this includes mechanisms for telling Steam to _not_ verify the file integrity on every boot. This solution attempts to modify the shortcut that gets used in common Windows Startup locations, by adding a "-noverifyfiles" argument to the invocation of the exe that tells Steam to _not_ perform the integrity check to preserve the CSS changes. Additionally the "-dev" argument is added which is limited in impact unless you know how to leverage the dev features.
 
-This is the heart of the functionality.  This segment of logic has been packaged as a PowerShell module that can be directly invoked by other interesting solutions. It creates a backup of a file it modifies, and then writes a replacement file that Steam will use.
+This is the heart of the functionality.  This segment of logic has been packaged as a PowerShell module named `Remove-SteamWhatsNew` that can be directly invoked by other interesting solutions. It creates a backup of the CSS file it modifies, and then writes a replacement CSS file that Steam will use.
 
 An additional script has been packaged that is very useful for the case where Steam _actually_ gets real updates (which will revert your changes, requiring you to run the `Remove-SteamWhatsNew` command again). `startup.ps1` can be run and it will handle shutting down any running process of Steam, then executing the `Remove-SteamWhatsNew` command in a standard way (using default values/locations).
 
 Going one step further, there is a `Create-Shortcut.ps1` utility that is for creating an alternate Steam shortcut that you can pin to your taskbar or start menu for ease of use. Once you run this utility, a red steam shortcut will appear that knows how to invoke `startup.ps1` making a very handy entry point for the non-technically inclined.
 
 # Standard Use
+
+## Before
+
+See "First Time Setup" below if you haven't configured Windows to trust the scripts to run.
+
+## (Optional) Create the Shortcut
+
+Execute the `Create-Shortcut.ps1` script. A new shortcut should appear called `Steam.lnk` (or just `Steam` if extensions are hidden).
+
+At this point, you should be able to just double click on the shortcut to run the `startup.ps1` helper.
+
+## (Optional) Test the Utility (`startup.ps1`)
+
+From any shell with the not-`Restricted` and not-`Undefined` execution policies, execute the `startup.ps1` script.
+
+This should shutdown any running steam process, and invoke the `Remove-SteamWhatsNew` module with default configurations.
+
+# To use Remove-SteamWhatsNew:
+
+Steps)
+1) Open PowerShell
+2) Run `Import-Module .\RemoveSteamWhatsNew.ps1`
+3) Run `Remove-SteamWhatsNew`<br>
+Optional Parameters:<br>
+    `-SetNoVerifyInStartup $false`, Tries to set the Startup shortcuts to not verify the files if Steam boots on Windows startup<br>
+    `-SteamLocation {Path to Steam directory}`, Steam's location if it's a nonstandard install location <br>
+    `-TargetClass {Steam CSS class to target}`, Overrides the hardcoded CSS class name<br>
+    `-TargetFile {Path to Steam css file to backup and modify}`, Overrides the hardcoded CSS file location
+
+# First Time Setup
 
 ## Clone the Repo
 
@@ -61,29 +91,3 @@ OR you can use the User Certificates utility:
 3) Find "SeanC2222" in the certificate listings (SECURITY RISK: Don't touch other certs)
 4) Click on it, and find the red 'X' along the command bar above the list.
 5) Follow the prompts
-
-## (Optional) Create the Shortcut
-
-Now that the certificate is trusted, and you have an execution policy that requires signed scripts, run the `Create-Shortcut.ps1` script through your shell:
-
-Execute the `Create-Shortcut.ps1` script. A new shortcut should appear called `Steam.lnk` (or just `Steam` if extensions are hidden).
-
-At this point, you should be able to just double click on the shortcut to run the `startup.ps1` helper.
-
-## (Optional) Test the Utility (`startup.ps1`)
-
-From any shell with the not-`Restricted` and not-`Undefined` execution policies, execute the `startup.ps1` script.
-
-This should shutdown any running steam process, and invoke the `Remove-SteamWhatsNew` module with default configurations.
-
-# To use Remove-SteamWhatsNew:
-
-Steps)
-1) Open PowerShell
-2) Run `Import-Module .\RemoveSteamWhatsNew.ps1`
-3) Run `Remove-SteamWhatsNew`<br>
-Optional Parameters:<br>
-    `-SetNoVerifyInStartup $false`, Tries to set the Startup shortcuts to not verify the files if Steam boots on Windows startup<br>
-    `-SteamLocation {Path to Steam directory}`, Steam's location if it's a nonstandard install location <br>
-    `-TargetClass {Steam CSS class to target}`, Overrides the hardcoded CSS class name<br>
-    `-TargetFile {Path to Steam css file to backup and modify}`, Overrides the hardcoded CSS file location
