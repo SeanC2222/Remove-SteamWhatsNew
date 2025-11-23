@@ -5,7 +5,7 @@ param(
 
 
     [Parameter()]
-    [string] $ModuleLocation = "$($env:USERPROFILE)\source\repos\Remove-SteamWhatsNew",
+    [string] $ModuleLocation = "$(pwd.Path)\Remove-SteamWhatsNew",
 
     [Parameter()]
     [string] $ModuleName = "RemoveSteamWhatsNew",
