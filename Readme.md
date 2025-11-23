@@ -33,7 +33,7 @@ In your Administrator PowerShell shell and paste in:
 `Set-ExecutionPolicy AllSigned`
 Hit 'Enter'
 
-To allow a level of trust limited to these utilities, we need to run an unsigned script to install the trust script once. To do this we set our execution policy to Bypass just for the life of this shell process (once it closes, it reverts to the previously set policy).
+To allow a level of trust limited to these utilities, we need to run a bootstrapping script to install the trust certificate once. To do this we set our execution policy to Bypass just for the life of this shell process (once it closes, it reverts to the previously set policy).
 
 In your Administrator PowerShell shell and paste in:
 `Set-ExecutionPolicy Bypass -Scope Process`
@@ -41,7 +41,7 @@ Hit 'Enter'
 
 ## Install the Cert
 
-NOTE: See warning. This is a toy utility, and isn't meant to be commercialized so I signed the script with a local cert instead of a commercial one. Trust at your own risk.
+NOTE: See warning. This is a homebrewed utility, and isn't meant to be commercialized so I signed the script with a local cert instead of a commercial one. Trust at your own risk.
 
 Execute the `Install-Cert.ps1` by following the prompt. You should see a "SUCCESS" message when it completes.
 
